@@ -7,8 +7,8 @@
 
 
 
-<meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#7c6af7" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#7c6af7" media="(prefers-color-scheme: light)">
 <title>Kalzen</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -574,6 +574,8 @@ footer .accent{color:var(--ac)}
 
   /* Gesture hint above bar */
   #gestureHint{ bottom:calc(72px + env(safe-area-inset-bottom)); }
+  /* Help button — above mobile bar */
+  #helpBtn{ bottom:calc(72px + env(safe-area-inset-bottom)) !important; left:8px !important; }
 }
 
 /* ── TABLET (601–1024px) ── */
@@ -897,6 +899,7 @@ footer .accent{color:var(--ac)}
       // ── Probe sw.js before registering ──────────────────────
       // Prevents the noisy 404 console error when running from
       // Claude preview, file://, or any host without sw.js deployed.
+      // sw.js is v4.0 — cache: kalzen-v4
       fetch('./sw.js', { method: 'HEAD' })
         .then(function (res) {
           if (!res.ok) throw new Error('sw.js not found (' + res.status + ')');
@@ -1030,7 +1033,7 @@ footer .accent{color:var(--ac)}
 <body>
 
 <!-- ══ PWA: Install Bar, Update Bar, Offline Badge ════════ -->
-<div id="pwaInstallBar">
+<div id="pwaInstallBar" role="banner" aria-label="Install Kalzen app">
   <div id="pwaBarIcon" role="img" aria-label="Kalzen app icon"></div>
   <div id="pwaBarText">
     <strong>Install Kalzen</strong>
@@ -1041,7 +1044,7 @@ footer .accent{color:var(--ac)}
 </div>
 
 <div id="pwaUpdateBar">
-  <span>&#x1F504; New version of Kalzen is ready.</span>
+  <span>&#x1F504; Kalzen has been updated — reload to apply.</span>
   <button id="pwaUpdateBtn">Update Now</button>
   <button id="pwaUpdateClose" aria-label="Dismiss">&#x2715;</button>
 </div>
@@ -1950,6 +1953,16 @@ footer .accent{color:var(--ac)}
     </div>
     <div style="font-size:8px;color:var(--txm);text-align:center;margin-top:16px;padding-top:10px;border-top:1px solid var(--bd)">
       2-finger tap = Undo &nbsp;·&nbsp; 3-finger = Redo<br>Pinch = Zoom &nbsp;·&nbsp; 2-finger drag = Pan
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;width:100%;box-sizing:border-box">
+      <button class="modal-btn" style="padding:10px 4px;font-size:9px;text-align:center;min-width:0"
+        onclick="App.Mob.closeAll();setTimeout(()=>KalzenFirstDraw.start(true),120)">
+        ▶ First Draw Guide
+      </button>
+      <button class="modal-btn" style="padding:10px 4px;font-size:9px;text-align:center;min-width:0"
+        onclick="App.Mob.closeAll();setTimeout(()=>KalzenHelp.open(),120)">
+        ? Help Guide
+      </button>
     </div>
   </div>
 </div>
@@ -5619,7 +5632,8 @@ return {
   setPressureDead, setPressureCurve,
   updateSliderVal, B, S, E, F, PT, SY, OV, BG, L, Mob,
   gradColor2, set gradColor2(v){ gradColor2=v; },
-  renderBrushLib, renderBrushPresets, showGesture, init
+  renderBrushLib, renderBrushPresets, showGesture, init,
+  showHelp: (id) => typeof KalzenHelp !== 'undefined' && KalzenHelp.open(id)
 };
 })();
 
@@ -5922,7 +5936,7 @@ App.init();
 (function () {
   'use strict';
 
-  var DISMISS_KEY = 'kalzen-pwa-dismissed-v3';
+  var DISMISS_KEY = 'kalzen-pwa-dismissed-v4';
   var deferred    = null;
 
   var installBar  = document.getElementById('pwaInstallBar');
@@ -6016,6 +6030,1444 @@ App.init();
   if (isStandalone) { installBar && installBar.classList.remove('show'); }
 })();
 
+
+// ══ Kalzen Help System ══════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  Kalzen Help System  — KalzenHelp namespace
+// ══════════════════════════════════════════════════════════════
+const KalzenHelp = (() => {
+  'use strict';
+
+  // ── Section data ────────────────────────────────────────────
+  const SECTIONS = [
+    {
+      id: 'welcome',
+      icon: '👋',
+      title: 'Welcome to Kalzen',
+      content: `
+<h2>Welcome to Kalzen</h2>
+<p>Kalzen is a professional digital painting app that runs entirely in your browser — no installation, no plugins. Paint with pressure-sensitive brushes, manage layers, use graphic tablets, and work on any device from phone to desktop.</p>
+
+<div class="help-cards">
+  <div class="help-card">
+    <div class="help-card-icon">🖥</div>
+    <div><strong>Desktop</strong><br>Full layout with sidebars, toolbar, and all panels visible.</div>
+  </div>
+  <div class="help-card">
+    <div class="help-card-icon">📱</div>
+    <div><strong>Mobile</strong><br>Canvas-first view with a floating bottom bar for all tools.</div>
+  </div>
+  <div class="help-card">
+    <div class="help-card-icon">🎨</div>
+    <div><strong>Tablet</strong><br>Compact sidebars with expand/collapse FAB buttons.</div>
+  </div>
+</div>
+
+<h3>Quick Start</h3>
+<ol>
+  <li>Pick a tool from the toolbar (top) or left sidebar.</li>
+  <li>Choose a colour from the colour picker or palette.</li>
+  <li>Draw on the canvas. That's it.</li>
+  <li>When ready, click <strong>Save PNG</strong> to download your artwork.</li>
+</ol>
+
+<div class="help-tip">
+  💡 Hover over any tool or button to see a rich tooltip with description, shortcut key, and a usage tip.
+</div>
+`
+    },
+    {
+      id: 'interface',
+      icon: '🖥',
+      title: 'Interface Overview',
+      content: `
+<h2>Interface Overview</h2>
+
+<h3>Header Bar</h3>
+<p>The top bar contains the Kalzen logo, your current plan badge (click to upgrade), the input type indicator (Mouse / Pen / Touch), and four theme buttons.</p>
+
+<h3>Horizontal Toolbar</h3>
+<p>Runs below the header. Contains all drawing tools, Size and Opacity sliders, pressure toggles, colour picker, quick palette swatches, and action buttons (New, Undo, Redo, Clear, Background, Save). Scroll it horizontally with the arrow buttons at each end, or with Shift+Scroll.</p>
+
+<h3>Left Sidebars</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">🛠 Tools</div><div class="help-td">All drawing tools with icons and labels. Click the header to expand or collapse to a 50px icon strip.</div></div>
+  <div class="help-tr"><div class="help-th">🎨 Color</div><div class="help-td">Full colour picker, 16-swatch palette, hex input, and a recent-colours strip.</div></div>
+</div>
+
+<h3>Canvas Area</h3>
+<p>The central painting surface. Supports zoom (10%–800%), pan, and pinch gestures. The zoom bar sits at the bottom centre.</p>
+
+<h3>Right Sidebar — Properties</h3>
+<p>Contains (top to bottom): Layers panel, Brush size/opacity, Brush shape, Brush engine sliders, Tablet settings, Stabilizer, Eraser mode, Fill, Gradient, Pattern, Symmetry, Rulers & Grid, Perspective, Canvas info, Brush Presets, Brush Library, and Background.</p>
+
+<h3>Status Bar</h3>
+<p>Shows the active tool name, cursor coordinates, brush size, opacity, and input type at the bottom of the screen.</p>
+
+<div class="help-tip">💡 Click any sidebar header to toggle between full and icon-only mode. This saves screen space on laptops.</div>
+`
+    },
+    {
+      id: 'tools',
+      icon: '🛠',
+      title: 'Drawing Tools',
+      content: `
+<h2>Drawing Tools</h2>
+<p>Kalzen has 14 tools. Select from the toolbar, left sidebar, or press the keyboard shortcut. The active tool highlights in purple.</p>
+
+<div class="help-table">
+  <div class="help-tr help-thead">
+    <div class="help-th">Tool</div><div class="help-th">Key</div><div class="help-th">Description</div><div class="help-th">Plan</div>
+  </div>
+  <div class="help-tr"><div class="help-th">✏️ Pencil</div><div class="help-td"><kbd>P</kbd></div><div class="help-td">Hard-edged freehand drawing. Great for crisp linework and outlines.</div><div class="help-td">Free</div></div>
+  <div class="help-tr"><div class="help-th">🖌 Brush</div><div class="help-td"><kbd>B</kbd></div><div class="help-td">Main painting brush. All brush engine parameters active.</div><div class="help-td">Free</div></div>
+  <div class="help-tr"><div class="help-th">🖊 Calligraphy</div><div class="help-td"><kbd>K</kbd></div><div class="help-td">Flat nib that rotates with pen tilt/twist. Width varies with pressure.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">🫧 Spray</div><div class="help-td"><kbd>A</kbd></div><div class="help-td">Continuous airbrush spray while held. Density builds over time.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">🧹 Eraser</div><div class="help-td"><kbd>E</kbd></div><div class="help-td">Removes pixels from the active layer only. Soft / Hard / Block modes.</div><div class="help-td">Free</div></div>
+  <div class="help-tr"><div class="help-th">👆 Smudge</div><div class="help-td"><kbd>M</kbd></div><div class="help-td">Drags and blends existing pixels like smearing wet paint.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">🔁 Clone</div><div class="help-td"><kbd>C</kbd></div><div class="help-td">Copies pixels from a source point. Alt+Click to set source.</div><div class="help-td">Studio ✦</div></div>
+  <div class="help-tr"><div class="help-th">╱ Line</div><div class="help-td"><kbd>L</kbd></div><div class="help-td">Draws a straight line with live preview. Release to commit.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">⬜ Rectangle</div><div class="help-td"><kbd>R</kbd></div><div class="help-td">Draws a stroked rectangle. Drag to size.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">⭕ Ellipse</div><div class="help-td"><kbd>O</kbd></div><div class="help-td">Draws a stroked ellipse or circle.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">🪣 Fill</div><div class="help-td"><kbd>F</kbd></div><div class="help-td">Flood-fills a contiguous area. Tolerance controls colour range.</div><div class="help-td">Free</div></div>
+  <div class="help-tr"><div class="help-th">🌈 Gradient</div><div class="help-td"><kbd>G</kbd></div><div class="help-td">Paints a linear, radial, or conic gradient. Drag to set direction.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">⬡ Pattern</div><div class="help-td"><kbd>N</kbd></div><div class="help-td">Stamps repeating geometric shapes along your stroke.</div><div class="help-td">Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">💉 Eyedropper</div><div class="help-td"><kbd>I</kbd></div><div class="help-td">Samples the colour under the cursor from all visible layers.</div><div class="help-td">Free</div></div>
+</div>
+
+<h3>Clone Stamp — Step by Step</h3>
+<ol>
+  <li>Select Clone with <kbd>C</kbd>.</li>
+  <li>Hold <kbd>Alt</kbd> and click the area you want to copy from. A crosshair reticle marks the source.</li>
+  <li>Paint normally — pixels are stamped from the source offset.</li>
+</ol>
+
+<div class="help-tip">💡 The Eyedropper sets the active colour and adds it to Recent Colours automatically. Press your last tool key (e.g. <kbd>B</kbd>) to return to painting with the sampled colour.</div>
+`
+    },
+    {
+      id: 'brushengine',
+      icon: '🖌',
+      title: 'Brush Engine',
+      content: `
+<h2>Brush Engine</h2>
+<p>Every painting tool uses a shared brush engine with 24 unique shapes and 5 adjustable parameters.</p>
+
+<h3>Brush Shapes (24)</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Round</div><div class="help-td">Circular stamp with soft or hard edge falloff. Default for most painting.</div></div>
+  <div class="help-tr"><div class="help-th">Flat</div><div class="help-td">Elliptical stamp that rotates with pen tilt, like a flat brush or chisel nib.</div></div>
+  <div class="help-tr"><div class="help-th">Bristle</div><div class="help-td">Multiple thin strands mimicking a fan or bristle brush with individual hair marks.</div></div>
+  <div class="help-tr"><div class="help-th">Watercolor</div><div class="help-td">Four overlapping soft radial blobs for a wet, bleeding watercolour effect.</div></div>
+  <div class="help-tr"><div class="help-th">Oil</div><div class="help-td">Small elliptical dabs imitating thick impasto oil paint.</div></div>
+  <div class="help-tr"><div class="help-th">Ink</div><div class="help-td">Line width scales strongly with pressure, like a dip pen or brush pen.</div></div>
+  <div class="help-tr"><div class="help-th">Texture</div><div class="help-td">Randomly placed micro-circles that build up a grainy, stippled texture.</div></div>
+  <div class="help-tr"><div class="help-th">Wash</div><div class="help-td">Large ultra-soft watercolour wash with edge blooms.</div></div>
+  <div class="help-tr"><div class="help-th">Wet Spread</div><div class="help-td">Irregular expanding blobs simulating wet-on-wet painting.</div></div>
+  <div class="help-tr"><div class="help-th">Thick Bristle</div><div class="help-td">Dense, stiff strands with loaded paint variation.</div></div>
+  <div class="help-tr"><div class="help-th">Flat Oil</div><div class="help-td">Wide rectangular stroke with loaded edges.</div></div>
+  <div class="help-tr"><div class="help-th">Fan Brush</div><div class="help-td">Splayed bristles in an arc, like a traditional fan brush.</div></div>
+  <div class="help-tr"><div class="help-th">Impasto</div><div class="help-td">Thick raised dabs with highlight and shadow simulation.</div></div>
+  <div class="help-tr"><div class="help-th">Dry Texture</div><div class="help-td">Sparse bristle marks that skip on a textured surface.</div></div>
+  <div class="help-tr"><div class="help-th">Palette Knife</div><div class="help-td">Sharp rectangular smear with ragged edge trail.</div></div>
+  <div class="help-tr"><div class="help-th">Soft Air</div><div class="help-td">Pure feathered radial gradient — classic smooth airbrush.</div></div>
+  <div class="help-tr"><div class="help-th">Matte Painting</div><div class="help-td">Wide directional soft ellipse for atmospheric sweeps.</div></div>
+  <div class="help-tr"><div class="help-th">Soft Oil</div><div class="help-td">Multi-layer soft ellipses with warm blending transitions.</div></div>
+  <div class="help-tr"><div class="help-th">WC Glaze</div><div class="help-td">Ultra-thin wash with granulation specks at the edge.</div></div>
+  <div class="help-tr"><div class="help-th">Impressionist</div><div class="help-td">Short random directional dabs at varied angles.</div></div>
+  <div class="help-tr"><div class="help-th">Concept Art</div><div class="help-td">Sharp flat rectangle with inner linear highlight/shadow.</div></div>
+  <div class="help-tr"><div class="help-th">Painterly Texture</div><div class="help-td">Bristle drag with 25% random gap skip and width variation.</div></div>
+  <div class="help-tr"><div class="help-th">Expressive</div><div class="help-td">Pressure-driven bold stroke with a thin secondary edge line.</div></div>
+  <div class="help-tr"><div class="help-th">Mixed Media</div><div class="help-td">Ink line core with bleeding radial blobs along the path.</div></div>
+</div>
+
+<h3>Parameters</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Hardness</div><div class="help-td">Edge softness from 0% (fully feathered) to 100% (hard edge).</div></div>
+  <div class="help-tr"><div class="help-th">Flow</div><div class="help-td">Paint deposited per stamp. Low values let you build up gradually.</div></div>
+  <div class="help-tr"><div class="help-th">Spacing</div><div class="help-td">Distance between stamps along the stroke. Lower = smoother.</div></div>
+  <div class="help-tr"><div class="help-th">Wet Mix</div><div class="help-td">Blends current colour with the canvas at each stamp position.</div></div>
+  <div class="help-tr"><div class="help-th">Scatter</div><div class="help-td">Randomly offsets each stamp sideways for a scattered look.</div></div>
+</div>
+
+<h3>Brush Presets (29)</h3>
+<p>The Properties sidebar contains 29 artist-curated presets across 7 categories: Watercolor & Wet Media, Oil Painting, Acrylic, Gouache, Soft & Atmospheric, Blending & Texture, and Artistic & Professional. Click any preset to instantly load all its settings. A highlighted border shows the active preset.</p>
+
+<h3>Brush Library</h3>
+<p>Save your own brushes with <strong>+ Save</strong>. Export the library as JSON to share it. Import JSON files from other users. Your library persists between sessions.</p>
+
+<div class="help-tip">💡 Save a brush before experimenting so you can always reload the original settings.</div>
+`
+    },
+    {
+      id: 'layers',
+      icon: '🗂',
+      title: 'Layers',
+      content: `
+<h2>Layers</h2>
+<p>Kalzen supports a full non-destructive layer stack at the top of the Properties panel.</p>
+
+<h3>Layer Panel Controls</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">＋ New</div><div class="help-td">Add a transparent layer above the active one. <kbd>Ctrl+Shift+N</kbd></div></div>
+  <div class="help-tr"><div class="help-th">🗁 Group</div><div class="help-td">Create a folder to organise layers. Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">⧉ Duplicate</div><div class="help-td">Copy the active layer with all its pixels and settings. Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">⬇ Merge Down</div><div class="help-td">Flatten the active layer into the one beneath it.</div></div>
+  <div class="help-tr"><div class="help-th">⊞ Merge Visible</div><div class="help-td">Collapse all visible layers into one. Pro ★</div></div>
+  <div class="help-tr"><div class="help-th">▣ Flatten</div><div class="help-td">Merge everything including background into a single layer.</div></div>
+  <div class="help-tr"><div class="help-th">🗑 Delete</div><div class="help-td">Permanently remove the active layer.</div></div>
+</div>
+
+<h3>Blend Modes (16)</h3>
+<p>Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge, Color Burn, Hard Light, Soft Light, Difference, Exclusion, Hue, Saturation, Color, Luminosity. Select from the dropdown above the layer list.</p>
+
+<h3>Advanced Features</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">🔒 Alpha Lock</div><div class="help-td">Right-click → Toggle Alpha Lock. New strokes only affect already-opaque pixels. Studio ✦</div></div>
+  <div class="help-tr"><div class="help-th">📎 Clipping Mask</div><div class="help-td">Right-click → Clipping Mask. Layer clips to the alpha of the one below.</div></div>
+  <div class="help-tr"><div class="help-th">◐ Layer Mask</div><div class="help-td">Right-click → Add Mask. White = show, Black = hide. Studio ✦</div></div>
+  <div class="help-tr"><div class="help-th">✦ Adjustment Layers</div><div class="help-td">Right-click → Adj: Brightness/Contrast, Hue/Saturation, Curves, or Invert. Non-destructive. Studio ✦</div></div>
+</div>
+
+<h3>Right-Click Context Menu</h3>
+<p>Right-click any layer row for: Rename, Duplicate, Group, Alpha Lock, Clipping Mask, Add Mask, Adjustment types (Brightness, Hue, Curves, Invert), Merge Down, Merge Visible, Delete.</p>
+
+<h3>Layer Limits by Plan</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Free</div><div class="help-td">Up to 3 layers</div></div>
+  <div class="help-tr"><div class="help-th">Pro ★</div><div class="help-td">Up to 20 layers</div></div>
+  <div class="help-tr"><div class="help-th">Studio ✦</div><div class="help-td">Unlimited layers</div></div>
+</div>
+
+<div class="help-tip">💡 Drag any layer row up or down to reorder it in the stack.</div>
+`
+    },
+    {
+      id: 'color',
+      icon: '🎨',
+      title: 'Colour System',
+      content: `
+<h2>Colour System</h2>
+
+<h3>Colour Sidebar (🎨)</h3>
+<p>Click the panel header to expand it. Contains:</p>
+<ul>
+  <li><strong>Colour Picker</strong> — native browser colour wheel. Hex value updates live below it.</li>
+  <li><strong>Hex Input</strong> — click the hex value and type any hex code directly.</li>
+  <li><strong>Palette</strong> — 16 preset swatches in a grid. Click any to apply.</li>
+  <li><strong>Recent Colours</strong> — last 12 used colours. Click any dot to jump back.</li>
+</ul>
+
+<h3>Toolbar Picker</h3>
+<p>The colour picker button in the horizontal toolbar opens a native colour selector. The swatches beside it offer 9 quick colours.</p>
+
+<h3>Gradient End Colour</h3>
+<p>When the Gradient tool is active, a second colour swatch appears in the Properties panel. This is the end colour for the gradient. The gradient fades from the primary colour to this colour.</p>
+
+<h3>Eyedropper</h3>
+<p>Press <kbd>I</kbd> to switch to the eyedropper at any time. Click any pixel on the canvas to sample its colour. The colour is added to Recent Colours automatically. Press your last tool key to return to painting.</p>
+
+<div class="help-tip">💡 To sample a colour from a reference image, paste the image on a new layer, use the eyedropper, then hide or delete that layer.</div>
+`
+    },
+    {
+      id: 'canvas',
+      icon: '🖼',
+      title: 'Canvas & Zoom',
+      content: `
+<h2>Canvas & Zoom</h2>
+
+<h3>New Canvas</h3>
+<p>Press <kbd>Ctrl+N</kbd> or click New Canvas. Choose from 9 presets:</p>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Small</div><div class="help-td">800 × 600 px</div></div>
+  <div class="help-tr"><div class="help-th">HD</div><div class="help-td">1280 × 720 px</div></div>
+  <div class="help-tr"><div class="help-th">Full HD</div><div class="help-td">1920 × 1080 px</div></div>
+  <div class="help-tr"><div class="help-th">2K QHD</div><div class="help-td">2560 × 1440 px</div></div>
+  <div class="help-tr"><div class="help-th">4K UHD</div><div class="help-td">3840 × 2160 px (Studio ✦)</div></div>
+  <div class="help-tr"><div class="help-th">Square</div><div class="help-td">1080 × 1080 px</div></div>
+  <div class="help-tr"><div class="help-th">Portrait</div><div class="help-td">1080 × 1920 px</div></div>
+  <div class="help-tr"><div class="help-th">A4 Print</div><div class="help-td">2480 × 3508 px (300 DPI)</div></div>
+  <div class="help-tr"><div class="help-th">US Letter</div><div class="help-td">2550 × 3300 px (300 DPI)</div></div>
+</div>
+<p>Or enter custom dimensions up to 8000 × 8000 px. Toggle <strong>Discard current artwork</strong> to keep your layers when resizing.</p>
+
+<h3>Zooming</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th"><kbd>Ctrl + =</kbd></div><div class="help-td">Zoom in</div></div>
+  <div class="help-tr"><div class="help-th"><kbd>Ctrl + −</kbd></div><div class="help-td">Zoom out</div></div>
+  <div class="help-tr"><div class="help-th"><kbd>Ctrl + 0</kbd></div><div class="help-td">Reset to 100%</div></div>
+  <div class="help-tr"><div class="help-th"><kbd>Ctrl + Scroll</kbd></div><div class="help-td">Zoom toward cursor</div></div>
+  <div class="help-tr"><div class="help-th">Pinch (touch)</div><div class="help-td">Zoom in/out</div></div>
+  <div class="help-tr"><div class="help-th">⊡ Fit button</div><div class="help-td">Fit canvas to window</div></div>
+  <div class="help-tr"><div class="help-th">100% button</div><div class="help-td">Reset to 1:1 pixel view</div></div>
+</div>
+
+<h3>Panning</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th"><kbd>Space</kbd> + Drag</div><div class="help-td">Pan the canvas</div></div>
+  <div class="help-tr"><div class="help-th">Middle Mouse + Drag</div><div class="help-td">Pan the canvas</div></div>
+  <div class="help-tr"><div class="help-th">2-Finger Drag (touch)</div><div class="help-td">Pan the canvas</div></div>
+</div>
+
+<h3>Background</h3>
+<p>Click the <strong>Background</strong> button to open the background panel. Choose from 12 colour presets or a custom picker, then select from 17 procedural textures: paper, canvas, linen, kraft, watercolour, grid, dot grid, graph paper, lines, crosshatch, hex grid, triangles, blueprint, chalkboard, marble, or noise. The background is included in saved PNG exports.</p>
+
+<h3>Saving</h3>
+<p>Click <strong>Save PNG</strong> to download the artwork. All visible layers plus the background are composited into a single flat image. The file is named <code>kalzen-[timestamp].png</code>.</p>
+
+<div class="help-tip">💡 Free plan exports include a subtle "kalzen.app" watermark. Upgrade to Pro to remove it.</div>
+`
+    },
+    {
+      id: 'overlays',
+      icon: '📐',
+      title: 'Overlays & Guides',
+      content: `
+<h2>Overlays & Guides</h2>
+<p>All overlay controls are in the Properties panel on the right. Overlays are non-destructive — they appear on screen but are not included in saved images.</p>
+
+<h3>Rulers <span class="help-badge pro">Pro ★</span></h3>
+<p>Toggle <strong>Rulers</strong> on to show pixel-measurement rulers along the top and left edges of the canvas. Labels update live as you zoom.</p>
+
+<h3>Grid Overlay <span class="help-badge pro">Pro ★</span></h3>
+<p>Toggle <strong>Grid Overlay</strong> to show evenly-spaced guide lines. Use the <strong>Grid px</strong> slider (10–200 px) to set cell size. Minor lines appear at every cell; thicker major lines every 5th cell.</p>
+
+<h3>Guides <span class="help-badge pro">Pro ★</span></h3>
+<p>Click <strong>+ Guide</strong> to add a draggable guide line. Drag it to position. Click <strong>Clear</strong> to remove all guides at once. Guides snap to pixel positions.</p>
+
+<h3>Perspective Grid <span class="help-badge studio">Studio ✦</span></h3>
+<p>Toggle <strong>Perspective Grid</strong> on, then choose 1-point, 2-point, or 3-point mode. Yellow vanishing point dots appear on the canvas — drag them to reposition. The <strong>Horizon</strong> slider (5–95%) moves the horizon line vertically.</p>
+
+<div class="help-tip">💡 In 2-point perspective, drag the vanishing points well off the canvas edges for a natural-looking result. You can drag them beyond the visible canvas boundary.</div>
+
+<h3>Symmetry <span class="help-badge pro">Pro ★</span></h3>
+<p>Enable <strong>Mirror Drawing</strong> in the Symmetry section. Six modes:</p>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">↔ Vertical</div><div class="help-td">Mirrors every stroke left/right.</div></div>
+  <div class="help-tr"><div class="help-th">↕ Horizontal</div><div class="help-td">Mirrors every stroke top/bottom.</div></div>
+  <div class="help-tr"><div class="help-th">⊞ Quadrant</div><div class="help-td">Reflects across both axes — 4 copies.</div></div>
+  <div class="help-tr"><div class="help-th">✦ Radial ×4/×6/×8</div><div class="help-td">Rotates copies evenly around the centre.</div></div>
+</div>
+<div class="help-tip">💡 Radial ×6 is ideal for mandalas. Combine with the Watercolor brush shape for flowing organic results.</div>
+`
+    },
+    {
+      id: 'tablet',
+      icon: '🖊',
+      title: 'Tablet & Stylus',
+      content: `
+<h2>Tablet & Stylus Support</h2>
+<p>Kalzen fully supports graphic tablets and styluses, including XP-Pen, Wacom, Huion, Samsung S-Pen, and any Android stylus. Pressure, tilt, twist, and tangential pressure (airbrush wheel) are all read.</p>
+
+<h3>Tablet / Stylus Settings</h3>
+<p>Found in the Properties panel under <strong>Tablet / Stylus</strong>:</p>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Pressure → Size</div><div class="help-td">Pen pressure dynamically scales brush size. Toggle on/off.</div></div>
+  <div class="help-tr"><div class="help-th">Pressure → Opacity</div><div class="help-td">Pen pressure dynamically scales stroke opacity.</div></div>
+  <div class="help-tr"><div class="help-th">Tilt → Angle</div><div class="help-td">Pen tilt rotates flat and calligraphy brush shapes.</div></div>
+  <div class="help-tr"><div class="help-th">Twist → Rotation</div><div class="help-td">Barrel rotation (0–359°) rotates brush shapes. Wacom / some S-Pen.</div></div>
+  <div class="help-tr"><div class="help-th">Dead Zone</div><div class="help-td">Ignores resting pressure below this threshold (0–15%). Default 4% prevents ghost marks on Android tablets.</div></div>
+  <div class="help-tr"><div class="help-th">Sensitivity</div><div class="help-td">Pressure curve: 1 = very soft (light touch = full effect), 5 = medium, 10 = firm (needs heavy press).</div></div>
+</div>
+
+<h3>Stroke Stabilizer <span class="help-badge pro">Pro ★</span></h3>
+<p>Toggle <strong>Smooth Strokes</strong> in the Stabilizer section. The dashed ring around the cursor shows the lag buffer. Strength 1–20. Higher strength gives cleaner lines with more noticeable delay.</p>
+<p>Recommended strength: 8–12 for lettering and logo work.</p>
+
+<h3>S-Pen Hover</h3>
+<p>Samsung S-Pen users: when the pen is in proximity range but not touching the screen, Kalzen shows a precision crosshair cursor. The pressure HUD at the bottom of the canvas shows live pressure and tilt values.</p>
+
+<h3>Barrel Button</h3>
+<p>The barrel side-button on any stylus automatically activates the Eraser tool when pressed. Releasing returns to the previous tool.</p>
+
+<h3>Palm Rejection</h3>
+<p>When a stylus is detected, Kalzen automatically ignores finger touches so your palm can rest on the screen while drawing.</p>
+
+<h3>Android Tablet Setup</h3>
+<ol>
+  <li>Open Kalzen in <strong>Chrome</strong> on your Android device.</li>
+  <li>Install the XP-Pen / Huion driver app if your tablet requires one.</li>
+  <li>Connect the tablet via USB-C or Bluetooth.</li>
+  <li>Draw — pressure, tilt, and the barrel button all work automatically.</li>
+</ol>
+
+<div class="help-tip">💡 For XP-Pen on Android: set Dead Zone to 2–3% and Sensitivity to 4–5 for the most natural feel.</div>
+`
+    },
+    {
+      id: 'mobile',
+      icon: '📱',
+      title: 'Mobile & Touch',
+      content: `
+<h2>Mobile & Touch</h2>
+<p>Kalzen is fully responsive. On phones (≤600px), the canvas fills the screen and a floating bottom bar provides all controls.</p>
+
+<h3>Mobile Bottom Bar (6 buttons)</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Tool icon</div><div class="help-td">Shows current tool. Tap to open the <strong>Tool Drawer</strong> — a 3-column grid of all tools plus Size/Opacity sliders.</div></div>
+  <div class="help-tr"><div class="help-th">Color dot</div><div class="help-td">Shows active colour. Tap to open the <strong>Color Drawer</strong> — colour picker, 14 swatches, recent colours.</div></div>
+  <div class="help-tr"><div class="help-th">Size</div><div class="help-td">Tap to cycle through 10 preset brush sizes: 2 · 4 · 6 · 8 · 12 · 16 · 24 · 32 · 48 · 64 px. A size-ring animation confirms the change.</div></div>
+  <div class="help-tr"><div class="help-th">Undo</div><div class="help-td">Immediately undoes the last stroke.</div></div>
+  <div class="help-tr"><div class="help-th">Brushes</div><div class="help-td">Opens the <strong>Layers & Brushes Drawer</strong> — layer list, blend mode, opacity, all 29 brush presets, and brush engine sliders.</div></div>
+  <div class="help-tr"><div class="help-th">More</div><div class="help-td">Opens the <strong>More Drawer</strong> — New, Save, Background, Clear, Fit, 1:1 Zoom, Theme, Symmetry, Stabilizer.</div></div>
+</div>
+
+<h3>Touch Gestures</h3>
+<div class="help-table">
+  <div class="help-tr"><div class="help-th">Pinch</div><div class="help-td">Zoom in/out. Canvas zooms toward the midpoint between your fingers.</div></div>
+  <div class="help-tr"><div class="help-th">2-Finger Drag</div><div class="help-td">Pan the canvas.</div></div>
+  <div class="help-tr"><div class="help-th">2-Finger Tap</div><div class="help-td">Undo.</div></div>
+  <div class="help-tr"><div class="help-th">3-Finger Tap</div><div class="help-td">Redo.</div></div>
+  <div class="help-tr"><div class="help-th">Swipe from Left Edge</div><div class="help-td">Open Tool Drawer.</div></div>
+  <div class="help-tr"><div class="help-th">Swipe from Right Edge</div><div class="help-td">Open Layers & Brushes Drawer.</div></div>
+</div>
+
+<h3>Installing Kalzen on Your Phone</h3>
+<p><strong>Android (Chrome):</strong> Tap the install banner or go to Chrome menu → Add to Home Screen. Kalzen launches full-screen with the drawing-board icon.</p>
+<p><strong>iOS (Safari):</strong> Tap Share → Add to Home Screen → Add. Kalzen opens as a standalone full-screen app.</p>
+
+<div class="help-tip">💡 On iPad, use the Brushes drawer (right swipe) to access all 29 brush presets while drawing. No need to leave the canvas.</div>
+`
+    },
+    {
+      id: 'shortcuts',
+      icon: '⌨',
+      title: 'Keyboard Shortcuts',
+      content: `
+<h2>Keyboard Shortcuts</h2>
+<p>Shortcuts use <kbd>Ctrl</kbd> on Windows/Linux and <kbd>Cmd</kbd> on macOS. Disabled when a text input or dropdown is focused.</p>
+
+<h3>Tools</h3>
+<div class="help-shortcut-grid">
+  <div><kbd>P</kbd> Pencil</div><div><kbd>B</kbd> Brush</div>
+  <div><kbd>K</kbd> Calligraphy</div><div><kbd>A</kbd> Spray</div>
+  <div><kbd>E</kbd> Eraser</div><div><kbd>M</kbd> Smudge</div>
+  <div><kbd>C</kbd> Clone</div><div><kbd>L</kbd> Line</div>
+  <div><kbd>R</kbd> Rectangle</div><div><kbd>O</kbd> Ellipse</div>
+  <div><kbd>F</kbd> Fill</div><div><kbd>G</kbd> Gradient</div>
+  <div><kbd>N</kbd> Pattern</div><div><kbd>I</kbd> Eyedropper</div>
+</div>
+
+<h3>Brush Size</h3>
+<div class="help-shortcut-grid">
+  <div><kbd>[</kbd> Decrease size by 2px</div>
+  <div><kbd>]</kbd> Increase size by 2px</div>
+</div>
+
+<h3>Canvas & View</h3>
+<div class="help-shortcut-grid">
+  <div><kbd>Ctrl Z</kbd> Undo</div><div><kbd>Ctrl Y</kbd> Redo</div>
+  <div><kbd>Ctrl N</kbd> New Canvas</div><div><kbd>Ctrl Shift N</kbd> New Layer</div>
+  <div><kbd>Ctrl =</kbd> Zoom In</div><div><kbd>Ctrl −</kbd> Zoom Out</div>
+  <div><kbd>Ctrl 0</kbd> Reset Zoom 100%</div><div><kbd>Ctrl Scroll</kbd> Zoom to Cursor</div>
+  <div><kbd>Space + Drag</kbd> Pan</div><div><kbd>Middle Mouse</kbd> Pan</div>
+  <div><kbd>Esc</kbd> Close Modals</div><div></div>
+</div>
+
+<h3>Stylus / Tablet</h3>
+<div class="help-shortcut-grid">
+  <div><kbd>Alt + Click</kbd> Set clone source</div>
+  <div><kbd>Barrel Button</kbd> Toggle Eraser</div>
+</div>
+
+<h3>Touch</h3>
+<div class="help-shortcut-grid">
+  <div>2-Finger Tap — Undo</div>
+  <div>3-Finger Tap — Redo</div>
+  <div>Pinch — Zoom</div>
+  <div>2-Finger Drag — Pan</div>
+</div>
+`
+    },
+    {
+      id: 'plans',
+      icon: '⭐',
+      title: 'Plans & Pricing',
+      content: `
+<h2>Plans & Pricing</h2>
+<p>Kalzen has three tiers. All prices in Indian Rupees (₹).</p>
+
+<div class="help-table">
+  <div class="help-tr help-thead">
+    <div class="help-th">Feature</div>
+    <div class="help-th">Free</div>
+    <div class="help-th" style="color:#7c6af7">Pro ★</div>
+    <div class="help-th" style="color:#f7a06a">Studio ✦</div>
+  </div>
+  <div class="help-tr"><div class="help-th">Price</div><div class="help-td">₹0</div><div class="help-td">₹149/mo · ₹999/yr</div><div class="help-td">₹299/mo · ₹1,999/yr</div></div>
+  <div class="help-tr"><div class="help-th">Tools</div><div class="help-td">8 basic</div><div class="help-td">13 tools</div><div class="help-td">All 14 (incl. Clone)</div></div>
+  <div class="help-tr"><div class="help-th">Layers</div><div class="help-td">3 max</div><div class="help-td">20 max</div><div class="help-td">Unlimited</div></div>
+  <div class="help-tr"><div class="help-th">Brush Presets</div><div class="help-td">5 (first category)</div><div class="help-td">All 29</div><div class="help-td">All 29</div></div>
+  <div class="help-tr"><div class="help-th">Canvas Size</div><div class="help-td">Up to 1280px</div><div class="help-td">Up to 2560px</div><div class="help-td">Up to 8000px (4K)</div></div>
+  <div class="help-tr"><div class="help-th">Stabilizer</div><div class="help-td">✗</div><div class="help-td">✓</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Symmetry</div><div class="help-td">✗</div><div class="help-td">✓</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Grid & Rulers</div><div class="help-td">✗</div><div class="help-td">✓</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">BG Textures</div><div class="help-td">✗</div><div class="help-td">✓</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Brush Library</div><div class="help-td">✗</div><div class="help-td">✓</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Perspective Grid</div><div class="help-td">✗</div><div class="help-td">✗</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Adj. Layers</div><div class="help-td">✗</div><div class="help-td">✗</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Layer Masks</div><div class="help-td">✗</div><div class="help-td">✗</div><div class="help-td">✓</div></div>
+  <div class="help-tr"><div class="help-th">Export Watermark</div><div class="help-td">Yes</div><div class="help-td">None</div><div class="help-td">None</div></div>
+</div>
+
+<h3>Free Trial</h3>
+<p>Try Pro free for 7 days — no payment required. Click <strong>Try 7 days free</strong> in the upgrade modal. One trial per device.</p>
+
+<h3>Promo Codes</h3>
+<p>Have a promo code? Click <strong>Have a promo code?</strong> in the upgrade modal to apply it before checkout. Discounts are reflected in real time on all plan cards.</p>
+
+<h3>License Key</h3>
+<p>After payment, you receive a license key in the format <code>KALZEN-XXXX-XXXX-XXXX</code>. Save this key — use <strong>Enter key</strong> in the upgrade modal on any device to restore your plan without paying again.</p>
+
+<button onclick="KalzenPay&&KalzenPay.showUpgrade('general')" style="
+  background:var(--ac);color:#fff;border:none;border-radius:10px;
+  padding:11px 24px;font-family:'DM Mono',monospace;font-size:12px;
+  font-weight:700;cursor:pointer;margin-top:16px;
+  -webkit-tap-highlight-color:transparent">
+  View Plans & Upgrade →
+</button>
+`
+    },
+    {
+      id: 'workflows',
+      icon: '🎯',
+      title: 'Workflows & Tips',
+      content: `
+<h2>Workflows & Tips</h2>
+
+<h3>Character Illustration Workflow</h3>
+<ol>
+  <li>New layer → sketch loosely with <strong>Pencil</strong> at low opacity.</li>
+  <li>New layer below sketch → block in flat base colours with <strong>Fill</strong> or large <strong>Brush</strong>.</li>
+  <li>New layer above flats → set blend mode to <strong>Multiply</strong>, enable <strong>Clipping Mask</strong> → paint shadows.</li>
+  <li>New layer above shadows → set blend mode to <strong>Screen</strong> or <strong>Overlay</strong> → paint highlights and rim light.</li>
+  <li>Add a <strong>Hue/Saturation</strong> adjustment layer at the top to tweak colour balance non-destructively.</li>
+</ol>
+
+<h3>Watercolour Painting Workflow</h3>
+<ol>
+  <li>Apply a <strong>Watercolour Paper</strong> background texture at 60–80% intensity.</li>
+  <li>Select the <strong>Watercolor Wash</strong> preset. Set Flow to 20%, Wet Mix to 40%.</li>
+  <li>Build up colour in multiple translucent passes on separate layers set to <strong>Multiply</strong>.</li>
+  <li>Use the <strong>Smudge</strong> tool to soften hard edges.</li>
+  <li>Add fine details on a top layer with <strong>Ink</strong> brush shape at 100% opacity.</li>
+</ol>
+
+<h3>Pixel Art Workflow</h3>
+<ol>
+  <li>Create a small canvas: 64×64 or 128×128 px.</li>
+  <li>Zoom to 600–800%.</li>
+  <li>Enable <strong>Grid Overlay</strong>, set Grid px to 1.</li>
+  <li>Use <strong>Pencil</strong> at size 1, hardness 100%, flow 100% for precise single-pixel placement.</li>
+  <li>Use <strong>Fill</strong> with tolerance 5–10 for solid colour regions.</li>
+</ol>
+
+<h3>Mandala Drawing</h3>
+<ol>
+  <li>Enable <strong>Symmetry → Radial ×6</strong> or ×8.</li>
+  <li>Use the <strong>Watercolor</strong> or <strong>Wash</strong> brush shape with low flow.</li>
+  <li>Draw on one segment — Kalzen mirrors it across all axes simultaneously.</li>
+  <li>Add detail passes with the <strong>Ink</strong> brush for sharp lines.</li>
+</ol>
+
+<h3>General Tips</h3>
+<ul>
+  <li><strong>Name your layers</strong> — double-click a layer name to rename it.</li>
+  <li><strong>Experiment non-destructively</strong> — duplicate a layer (⧉) before making big changes.</li>
+  <li><strong>Quick colour sampling</strong> — press <kbd>I</kbd> to eyedrop, then press the tool key to return instantly.</li>
+  <li><strong>Undo history</strong> — Kalzen keeps 50 undo steps, each capturing the full layer stack.</li>
+  <li><strong>Large canvas performance</strong> — merge layers periodically on canvases larger than 3000×3000 px.</li>
+  <li><strong>Brush presets as starting points</strong> — adjust any parameter after loading to customise further.</li>
+</ul>
+`
+    },
+    {
+      id: 'pwa',
+      icon: '📲',
+      title: 'Install as App (PWA)',
+      content: `
+<h2>Install Kalzen as an App</h2>
+<p>Kalzen is a Progressive Web App (PWA). Install it to your home screen for a full-screen, offline-capable experience — no App Store required.</p>
+
+<h3>Android / Chrome</h3>
+<ol>
+  <li>Open Kalzen in Chrome.</li>
+  <li>Look for the install banner at the bottom of the screen, or tap Chrome menu (⋮) → <strong>Add to Home Screen</strong>.</li>
+  <li>Tap <strong>Install</strong>. Kalzen appears on your home screen with the drawing-board icon.</li>
+  <li>Launch it — it opens full-screen like a native app with no browser chrome.</li>
+</ol>
+
+<h3>iOS / Safari</h3>
+<ol>
+  <li>Open Kalzen in Safari (other browsers on iOS cannot install PWAs).</li>
+  <li>Tap the <strong>Share button</strong> (□↑) at the bottom of Safari.</li>
+  <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+  <li>Tap <strong>Add</strong> in the top-right corner.</li>
+</ol>
+
+<h3>Desktop (Chrome / Edge)</h3>
+<ol>
+  <li>Look for the install icon (⊕) in the browser address bar.</li>
+  <li>Click it and choose <strong>Install</strong>.</li>
+  <li>Kalzen opens as a standalone window, separate from the browser.</li>
+</ol>
+
+<h3>Offline Support</h3>
+<p>Once installed and opened at least once on a server, Kalzen caches itself for offline use. A red <strong>⚡ Offline Mode</strong> badge appears in the top centre when connectivity is lost — but you can continue painting normally.</p>
+
+<h3>Updates</h3>
+<p>When a new version is available, an <strong>Update Now</strong> bar appears at the bottom of the screen. Click it to apply the update and reload.</p>
+`
+    },
+    {
+      id: 'faq',
+      icon: '❓',
+      title: 'FAQ',
+      content: `
+<h2>Frequently Asked Questions</h2>
+
+<details class="help-details" open>
+  <summary>Does Kalzen work without the internet?</summary>
+  <p>Yes — once you've installed Kalzen as a PWA and loaded it at least once on a web server, it caches itself and works fully offline. Your artwork is stored in browser memory during the session.</p>
+</details>
+
+<details class="help-details">
+  <summary>Will my artwork be saved between sessions?</summary>
+  <p>Currently, artwork is session-based — closing the tab or browser will clear the canvas unless you export it first. Always click <strong>Save PNG</strong> before closing. Cloud save is planned for a future Studio update.</p>
+</details>
+
+<details class="help-details">
+  <summary>Does my XP-Pen / Wacom tablet work?</summary>
+  <p>Yes. Install the tablet driver on your computer or device, then open Kalzen in Chrome or Edge. Pressure sensitivity, tilt, and the barrel button all work. See the <strong>Tablet & Stylus</strong> section for setup details.</p>
+</details>
+
+<details class="help-details">
+  <summary>Can I use Kalzen on a Samsung Galaxy Tab with S-Pen?</summary>
+  <p>Yes, fully. Open Kalzen in Samsung Internet or Chrome. The S-Pen's pressure, tilt, hover preview, and barrel button all work natively — no driver installation needed.</p>
+</details>
+
+<details class="help-details">
+  <summary>How do I restore my Pro/Studio plan on a new device?</summary>
+  <p>Open the upgrade modal (click the plan badge in the header), click <strong>Have a license key?</strong>, enter your <code>KALZEN-XXXX-XXXX-XXXX</code> key, and click Activate.</p>
+</details>
+
+<details class="help-details">
+  <summary>Can I undo after saving?</summary>
+  <p>Saving exports a flat PNG file — it does not affect your layer stack. You can continue undoing and editing after saving.</p>
+</details>
+
+<details class="help-details">
+  <summary>Why is the canvas blank when I open the app?</summary>
+  <p>Kalzen starts with a blank canvas every session. This is intentional — it loads instantly without needing to store or retrieve your previous work. Use <strong>Save PNG</strong> regularly to preserve your work.</p>
+</details>
+
+<details class="help-details">
+  <summary>Can I import images or photos into Kalzen?</summary>
+  <p>Currently you can paste images from the clipboard onto the canvas (Ctrl+V on supported browsers). A full image import feature is on the roadmap.</p>
+</details>
+
+<details class="help-details">
+  <summary>What's the maximum canvas size?</summary>
+  <p>Free: 1280px on the longer side. Pro: 2560px. Studio: 8000px (full 4K and beyond). Custom dimensions up to 8000×8000 px are supported on Studio.</p>
+</details>
+
+<details class="help-details">
+  <summary>How do I contact support?</summary>
+  <p>Use the feedback button (thumbs down) in the Claude.ai interface, or reach out via the Kalzen website. For billing issues, your Razorpay payment confirmation email will have a contact link.</p>
+</details>
+`
+    },
+  ];
+
+  // ── CSS injected once ─────────────────────────────────────
+  const CSS = `
+@keyframes helpFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes helpSlideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+#helpNav::-webkit-scrollbar,#helpContent::-webkit-scrollbar{width:3px}
+#helpNav::-webkit-scrollbar-thumb,#helpContent::-webkit-scrollbar-thumb{background:var(--ac);border-radius:999px}
+
+.help-nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 14px;font-size:10px;font-weight:500;
+  color:var(--txm);cursor:pointer;transition:all .1s;
+  border-left:2px solid transparent;
+  -webkit-tap-highlight-color:transparent;
+  font-family:'DM Mono',monospace;
+}
+.help-nav-item:hover{background:var(--hl);color:var(--tx)}
+.help-nav-item.active{
+  background:rgba(124,106,247,.1);
+  color:var(--ac);border-left-color:var(--ac);
+}
+.help-nav-icon{font-size:13px;flex-shrink:0;width:18px;text-align:center}
+
+#helpContent h2{
+  font-family:'Playfair Display',serif;
+  font-size:20px;font-weight:700;color:var(--tx);
+  margin:0 0 16px;padding-bottom:10px;
+  border-bottom:2px solid var(--ac);
+}
+#helpContent h3{
+  font-size:12px;font-weight:700;color:var(--tx);
+  margin:20px 0 8px;letter-spacing:.04em;
+  text-transform:uppercase;
+}
+#helpContent p{font-size:11px;color:var(--txm);margin:0 0 10px}
+#helpContent ul,#helpContent ol{
+  font-size:11px;color:var(--txm);
+  padding-left:18px;margin:0 0 12px;
+}
+#helpContent li{margin-bottom:4px;line-height:1.6}
+#helpContent strong{color:var(--tx);font-weight:600}
+#helpContent code{
+  background:var(--sf2);border:1px solid var(--bd);
+  border-radius:4px;padding:1px 5px;font-size:10px;color:var(--ac);
+}
+#helpContent kbd{
+  background:var(--sf2);border:1px solid var(--bd);
+  border-bottom:2px solid var(--bd);border-radius:4px;
+  padding:1px 6px;font-size:9px;font-weight:600;
+  color:var(--tx);font-family:'DM Mono',monospace;
+}
+
+.help-table{display:flex;flex-direction:column;gap:1px;margin:0 0 16px;border-radius:8px;overflow:hidden;border:1px solid var(--bd)}
+.help-tr{display:grid;grid-template-columns:160px 1fr;border-bottom:1px solid var(--bd)}
+.help-tr:last-child{border-bottom:none}
+.help-thead .help-th{background:var(--ac)!important;color:#fff!important;font-weight:700}
+.help-thead .help-td{background:var(--ac)!important;color:rgba(255,255,255,.85)!important}
+[data-theme="hc"] .help-thead .help-th,[data-theme="hc"] .help-thead .help-td{color:#000!important}
+.help-tr:nth-child(even) .help-th,.help-tr:nth-child(even) .help-td{background:var(--sf2)}
+.help-tr:nth-child(odd) .help-th,.help-tr:nth-child(odd) .help-td{background:var(--sf)}
+.help-th{
+  padding:7px 10px;font-size:10px;font-weight:600;color:var(--tx);
+  border-right:1px solid var(--bd);
+}
+.help-td{padding:7px 10px;font-size:10px;color:var(--txm);line-height:1.5}
+
+/* 4-column table support */
+.help-tr.grid4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+.help-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+@media(max-width:500px){.help-cards{grid-template-columns:1fr}}
+.help-card{
+  background:var(--sf2);border:1px solid var(--bd);border-radius:10px;
+  padding:14px;display:flex;flex-direction:column;gap:6px;
+  font-size:10px;color:var(--txm);line-height:1.5;
+}
+.help-card-icon{font-size:20px}
+.help-card strong{color:var(--tx)}
+
+.help-shortcut-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0 0 16px;
+}
+@media(max-width:460px){.help-shortcut-grid{grid-template-columns:1fr}}
+.help-shortcut-grid div{
+  background:var(--sf2);border:1px solid var(--bd);border-radius:7px;
+  padding:7px 10px;font-size:10px;color:var(--txm);
+}
+
+.help-tip{
+  background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.3);
+  border-radius:8px;padding:10px 14px;margin:12px 0;
+  font-size:10px;color:var(--txm);line-height:1.6;
+}
+
+.help-badge{
+  display:inline-flex;align-items:center;gap:2px;
+  font-size:8px;font-weight:700;letter-spacing:.06em;
+  padding:2px 6px;border-radius:999px;vertical-align:middle;margin-left:4px;
+}
+.help-badge.pro{background:rgba(124,106,247,.15);color:#7c6af7}
+.help-badge.studio{background:rgba(247,160,106,.15);color:#f7a06a}
+
+.help-details{
+  background:var(--sf2);border:1px solid var(--bd);border-radius:8px;
+  padding:0;margin-bottom:8px;overflow:hidden;
+}
+.help-details summary{
+  padding:10px 14px;font-size:11px;font-weight:600;color:var(--tx);
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+.help-details summary::-webkit-details-marker{display:none}
+.help-details summary::before{
+  content:'›';font-size:14px;color:var(--ac);
+  transition:transform .15s;flex-shrink:0;
+}
+.help-details[open] summary::before{transform:rotate(90deg)}
+.help-details p{
+  padding:0 14px 12px;margin:0;
+  font-size:10px;color:var(--txm);line-height:1.6;
+  border-top:1px solid var(--bd);padding-top:10px;
+}
+
+/* Search highlight */
+.help-highlight{background:rgba(124,106,247,.3);border-radius:2px}
+
+/* Mobile responsiveness */
+@media(max-width:600px){
+  #helpModal{border-radius:12px 12px 0 0!important;bottom:0!important;top:auto!important;height:88dvh!important;margin:0!important;width:100%!important}
+  #helpNav{display:none}
+  .help-cards{grid-template-columns:1fr}
+  .help-shortcut-grid{grid-template-columns:1fr}
+  .help-tr{grid-template-columns:120px 1fr}
+  #helpBtn{bottom:calc(68px + env(safe-area-inset-bottom))!important;left:8px!important}
+}
+`;
+
+  // ── State ────────────────────────────────────────────────
+  let _active   = 0;
+  let _cssAdded = false;
+
+  // ── Init ─────────────────────────────────────────────────
+  function _injectCSS() {
+    if (_cssAdded) return;
+    const s = document.createElement('style');
+    s.id = 'helpCSS';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+    _cssAdded = true;
+  }
+
+  function _buildNav() {
+    const nav = document.getElementById('helpNav');
+    if (!nav) return;
+    nav.innerHTML = SECTIONS.map((s, i) => `
+      <div class="help-nav-item ${i === _active ? 'active' : ''}"
+        onclick="KalzenHelp.goto(${i})">
+        <span class="help-nav-icon">${s.icon}</span>
+        <span>${s.title}</span>
+      </div>
+    `).join('');
+  }
+
+  function _renderContent(idx) {
+    const el = document.getElementById('helpContent');
+    const bc = document.getElementById('helpBreadcrumb');
+    if (!el) return;
+    el.innerHTML = SECTIONS[idx].content;
+    el.scrollTop = 0;
+    if (bc) bc.textContent = SECTIONS[idx].icon + '  ' + SECTIONS[idx].title;
+    _active = idx;
+    _buildNav();
+  }
+
+  // ── Public API ───────────────────────────────────────────
+  function open(sectionId) {
+    _injectCSS();
+    const overlay = document.getElementById('helpOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    // Focus search on desktop
+    setTimeout(() => {
+      if (window.innerWidth > 600)
+        document.getElementById('helpSearch')?.focus();
+    }, 250);
+    const idx = sectionId
+      ? SECTIONS.findIndex(s => s.id === sectionId)
+      : _active;
+    _buildNav();
+    _renderContent(Math.max(0, idx));
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    const overlay = document.getElementById('helpOverlay');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+    const si = document.getElementById('helpSearch');
+    if (si) si.value = '';
+    // Remove any search highlights
+    document.querySelectorAll('.help-highlight').forEach(el => {
+      el.outerHTML = el.textContent;
+    });
+  }
+
+  function goto(idx) {
+    _renderContent(idx);
+    document.getElementById('helpContent')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function search(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) { _renderContent(_active); return; }
+
+    // Search all sections
+    const results = [];
+    SECTIONS.forEach((s, si) => {
+      const combined = (s.title + ' ' + s.content).toLowerCase();
+      if (combined.includes(q)) {
+        // Count matches
+        const count = (combined.match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        results.push({ si, count, s });
+      }
+    });
+
+    const el = document.getElementById('helpContent');
+    const bc = document.getElementById('helpBreadcrumb');
+    if (!el) return;
+
+    if (!results.length) {
+      el.innerHTML = `
+        <h2>Search Results</h2>
+        <p>No results found for "<strong>${query}</strong>".</p>
+        <div class="help-tip">💡 Try searching for: tools, brush, layers, tablet, zoom, shortcuts, mobile</div>
+      `;
+      if (bc) bc.textContent = '🔍  No results for "' + query + '"';
+      return;
+    }
+
+    // Show all matching sections with highlighted content
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re  = new RegExp(`(${esc})`, 'gi');
+    el.innerHTML = `
+      <h2>Search: "${query}" — ${results.length} section${results.length > 1 ? 's' : ''}</h2>
+      ${results.map(r => `
+        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:10px;
+          padding:14px;margin-bottom:10px;cursor:pointer"
+          onclick="KalzenHelp.goto(${r.si})">
+          <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px">
+            ${r.s.icon}  ${r.s.title}
+            <span style="background:rgba(124,106,247,.15);color:#7c6af7;border-radius:4px;
+              padding:1px 6px;font-size:9px;margin-left:6px">${r.count} match${r.count > 1 ? 'es' : ''}</span>
+          </div>
+          <div style="font-size:10px;color:var(--txm)">Click to open section →</div>
+        </div>
+      `).join('')}
+    `;
+    if (bc) bc.textContent = '🔍  ' + results.length + ' result' + (results.length > 1 ? 's' : '') + ' for "' + query + '"';
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    const overlay = document.getElementById('helpOverlay');
+    if (!overlay || overlay.style.display === 'none') return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.target === document.getElementById('helpSearch')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); goto(Math.min(_active + 1, SECTIONS.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); goto(Math.max(_active - 1, 0)); }
+  });
+
+  // Close on overlay click
+  document.getElementById('helpOverlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('helpOverlay')) close();
+  });
+
+  return { open, close, goto, search, SECTIONS };
+})();
+
+
+
+// ══ Kalzen First Draw Guide ═══════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  Kalzen First Draw Guide  — KalzenFirstDraw namespace
+//  Shows automatically on first visit, step-by-step walkthrough
+//  that puts spotlight on real UI elements and ends with the
+//  user having made an actual stroke on the canvas.
+// ══════════════════════════════════════════════════════════════
+
+const KalzenFirstDraw = (() => {
+  'use strict';
+
+  const STORAGE_KEY = 'kalzen_first_draw_done';
+
+  // ── Step definitions ─────────────────────────────────────
+  // Each step: title, body, target (CSS selector or null),
+  // position (hint for where to place the card),
+  // action (optional function called when step becomes active),
+  // next (button label)
+  const STEPS = [
+    {
+      id: 'hello',
+      title: 'Welcome to Kalzen! 👋',
+      body: `You're about to make your first drawing. This quick guide walks you through <strong>7 steps</strong> — by the end you'll have drawn something on the canvas and know where everything is.<br><br>It takes about 90 seconds. Let's go!`,
+      target: null,
+      pos: 'center',
+      next: 'Start Drawing →',
+      skip: true,
+    },
+    {
+      id: 'canvas',
+      title: 'Step 1 — The Canvas',
+      body: `The large dark area in the middle is your <strong>canvas</strong>. Everything you paint appears here.<br><br>It starts blank — a fresh white (or transparent) surface ready for your artwork. You can zoom in and out with <kbd>Ctrl + Scroll</kbd> and pan by holding <kbd>Space</kbd> while dragging.`,
+      target: '#mainCanvas',
+      pos: 'center',
+      next: 'Next →',
+    },
+    {
+      id: 'pick-tool',
+      title: 'Step 2 — Pick a Tool',
+      body: `The <strong>Pencil</strong> tool is already selected (highlighted in purple) — it's the best tool to start with.<br><br>On <strong>desktop</strong>: tools are in the horizontal toolbar at the top, or the left sidebar.<br>On <strong>mobile</strong>: tap the tool icon in the bottom bar.`,
+      target: '#tb-pencil',
+      targetFallback: '#sbt-pencil',
+      pos: 'bottom',
+      next: 'Next →',
+      action: () => {
+        // Ensure pencil is active
+        if (window.App) App.setTool('pencil');
+      },
+    },
+    {
+      id: 'pick-color',
+      title: 'Step 3 — Choose a Colour',
+      body: `The <strong>colour picker</strong> in the toolbar shows your current colour (purple by default).<br><br>Click it to choose any colour. Or click one of the small round <strong>palette swatches</strong> beside it for a quick colour.<br><br>On <strong>mobile</strong>: tap the colour dot in the bottom bar.`,
+      target: '#colorPicker',
+      targetFallback: '#mobColorDot',
+      pos: 'bottom',
+      next: 'Next →',
+    },
+    {
+      id: 'brush-size',
+      title: 'Step 4 — Set Your Brush Size',
+      body: `The <strong>Size slider</strong> in the toolbar controls how thick your strokes are. Default is <strong>8px</strong> — a good starting size.<br><br>You can also press <kbd>[</kbd> to decrease and <kbd>]</kbd> to increase size at any time while drawing.<br><br>On <strong>mobile</strong>: tap the <em>Size</em> button to cycle through 10 preset sizes.`,
+      target: '#brushSize',
+      targetFallback: '#sbSize',
+      pos: 'bottom',
+      next: 'Next →',
+    },
+    {
+      id: 'draw-now',
+      title: 'Step 5 — Draw! ✏️',
+      body: `Now <strong>click (or tap) and drag on the canvas</strong> to make your first stroke!<br><br>Try drawing a simple shape — a circle, a line, your name. Anything goes.<br><br>When you've made at least one stroke, click <em>Done Drawing</em> to continue.`,
+      target: '#mainCanvas',
+      pos: 'top',
+      next: 'Done Drawing ✓',
+      isDrawStep: true,
+      action: () => {
+        // Pulse the canvas to draw attention
+        const cv = document.getElementById('mainCanvas');
+        if (cv) {
+          cv.style.transition = 'box-shadow .4s ease';
+          cv.style.boxShadow  = '0 0 0 3px var(--ac), 0 4px 40px var(--sh), 0 0 0 1px var(--bd)';
+          setTimeout(() => {
+            cv.style.boxShadow = '0 4px 40px var(--sh),0 0 0 1px var(--bd)';
+          }, 1800);
+        }
+      },
+    },
+    {
+      id: 'undo',
+      title: 'Step 6 — Undo & Redo',
+      body: `Made a mistake? No problem.<br><br>Press <kbd>Ctrl + Z</kbd> to <strong>undo</strong> your last stroke, and <kbd>Ctrl + Y</kbd> to <strong>redo</strong> it.<br><br>Kalzen keeps <strong>50 undo steps</strong>, each capturing the full layer stack. You can undo as many times as you need.<br><br>On <strong>mobile</strong>: tap the Undo button in the bottom bar, or use a 2-finger tap.`,
+      target: '[data-tt="undo"]',
+      targetFallback: null,
+      pos: 'bottom',
+      next: 'Next →',
+    },
+    {
+      id: 'save',
+      title: 'Step 7 — Save Your Artwork',
+      body: `When you're happy with your work, click <strong>Save PNG</strong> (the download icon in the toolbar) to export your artwork as a PNG file.<br><br>Your painting is saved to your device's Downloads folder.<br><br>On <strong>mobile</strong>: tap <em>More</em> in the bottom bar, then tap <em>Save</em>.`,
+      target: '[data-tt="save"]',
+      targetFallback: null,
+      pos: 'bottom',
+      next: 'Finish Guide ✓',
+    },
+  ];
+
+  // ── State ─────────────────────────────────────────────────
+  let _step    = 0;
+  let _active  = false;
+  let _overlay = null;
+  let _card    = null;
+  let _spot    = null;
+
+  // ── CSS ───────────────────────────────────────────────────
+  const CSS = `
+#fdOverlay{
+  position:fixed;inset:0;z-index:30000;pointer-events:none;
+}
+#fdSpot{
+  position:fixed;z-index:30001;
+  border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.62);
+  pointer-events:none;
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  border:2px solid var(--ac);
+}
+#fdCard{
+  position:fixed;z-index:30002;
+  width:min(320px,88vw);
+  background:var(--sf);
+  border:1px solid var(--ac);
+  border-radius:14px;
+  padding:20px 20px 16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 0 1px rgba(124,106,247,.2);
+  font-family:'DM Mono',monospace;
+  pointer-events:auto;
+  transition:opacity .2s ease, transform .2s ease;
+  animation:fdSlide .25s cubic-bezier(.4,0,.2,1);
+}
+@keyframes fdSlide{
+  from{opacity:0;transform:translateY(10px) scale(.97)}
+  to  {opacity:1;transform:translateY(0)   scale(1)}
+}
+#fdCard h3{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:700;color:var(--tx);
+  margin:0 0 10px;line-height:1.3;
+}
+#fdCard p{
+  font-size:11px;color:var(--txm);line-height:1.7;
+  margin:0 0 14px;
+}
+#fdCard p strong{color:var(--tx)}
+#fdCard p kbd{
+  background:var(--sf2);border:1px solid var(--bd);
+  border-bottom:2px solid var(--bd);border-radius:4px;
+  padding:1px 5px;font-size:9px;font-weight:600;
+  color:var(--tx);font-family:'DM Mono',monospace;
+}
+#fdCard p em{color:var(--ac);font-style:normal;font-weight:500}
+.fd-progress{
+  display:flex;gap:4px;margin-bottom:14px;
+}
+.fd-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--bd);flex-shrink:0;
+  transition:background .2s,transform .2s;
+}
+.fd-dot.done{background:var(--ac)}
+.fd-dot.active{background:var(--ac);transform:scale(1.4)}
+.fd-actions{
+  display:flex;align-items:center;gap:8px;
+}
+#fdNextBtn{
+  flex:1;background:var(--ac);color:#fff;
+  border:none;border-radius:9px;
+  padding:10px 14px;font-family:'DM Mono',monospace;
+  font-size:11px;font-weight:700;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:opacity .15s,transform .1s;
+}
+#fdNextBtn:active{opacity:.85;transform:scale(.97)}
+#fdSkipBtn{
+  background:none;border:none;color:var(--txm);
+  font-family:'DM Mono',monospace;font-size:10px;
+  cursor:pointer;padding:8px 4px;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+#fdSkipBtn:hover{color:var(--tx)}
+#fdArrow{
+  position:fixed;z-index:30003;pointer-events:none;
+  width:0;height:0;
+}
+/* Arrow directions */
+.fd-arrow-down{
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+  border-top:10px solid var(--ac);
+}
+.fd-arrow-up{
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+  border-bottom:10px solid var(--ac);
+}
+.fd-arrow-left{
+  border-top:8px solid transparent;
+  border-bottom:8px solid transparent;
+  border-right:10px solid var(--ac);
+}
+.fd-arrow-right{
+  border-top:8px solid transparent;
+  border-bottom:8px solid transparent;
+  border-left:10px solid var(--ac);
+}
+/* Mobile tweaks */
+@media(max-width:600px){
+  #fdCard{width:min(300px,92vw);padding:16px 16px 14px}
+  #fdCard h3{font-size:14px}
+  #fdCard p{font-size:10.5px}
+}
+`;
+
+  // ── Helpers ───────────────────────────────────────────────
+  function _injectCSS() {
+    if (document.getElementById('fdCSS')) return;
+    const s = document.createElement('style');
+    s.id = 'fdCSS';
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+
+  function _getTarget(step) {
+    let el = step.target ? document.querySelector(step.target) : null;
+    if (!el && step.targetFallback)
+      el = document.querySelector(step.targetFallback);
+    return el;
+  }
+
+  function _rectOf(el) {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    // Ignore off-screen (e.g. hidden toolbar on mobile)
+    if (r.width === 0 || r.height === 0) return null;
+    return r;
+  }
+
+  function _positionCard(step, targetRect) {
+    if (!_card) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const pad = 12, gap = 14;
+    const cw = _card.offsetWidth  || 320;
+    const ch = _card.offsetHeight || 200;
+
+    if (!targetRect || step.pos === 'center') {
+      // Centred on screen
+      _card.style.left = ((vw - cw) / 2) + 'px';
+      _card.style.top  = ((vh - ch) / 2) + 'px';
+      _updateArrow(null);
+      return;
+    }
+
+    let left = 0, top = 0, arrowClass = '';
+
+    const { pos } = step;
+    const tr = targetRect;
+
+    if (pos === 'bottom') {
+      // Card below the target
+      top  = tr.bottom + gap;
+      left = tr.left + tr.width / 2 - cw / 2;
+      arrowClass = 'fd-arrow-up';
+      // Flip up if no room
+      if (top + ch > vh - pad) {
+        top = tr.top - ch - gap;
+        arrowClass = 'fd-arrow-down';
+      }
+    } else if (pos === 'top') {
+      top  = tr.top - ch - gap;
+      left = tr.left + tr.width / 2 - cw / 2;
+      arrowClass = 'fd-arrow-down';
+      if (top < pad) {
+        top = tr.bottom + gap;
+        arrowClass = 'fd-arrow-up';
+      }
+    } else if (pos === 'right') {
+      left = tr.right + gap;
+      top  = tr.top + tr.height / 2 - ch / 2;
+      arrowClass = 'fd-arrow-left';
+    } else if (pos === 'left') {
+      left = tr.left - cw - gap;
+      top  = tr.top + tr.height / 2 - ch / 2;
+      arrowClass = 'fd-arrow-right';
+    }
+
+    // Clamp to viewport
+    left = Math.max(pad, Math.min(left, vw - cw - pad));
+    top  = Math.max(pad, Math.min(top,  vh - ch - pad));
+
+    _card.style.left = left + 'px';
+    _card.style.top  = top  + 'px';
+    _updateArrow(arrowClass, targetRect, left, top, cw, ch, pos);
+  }
+
+  function _updateArrow(cls, tr, cardLeft, cardTop, cw, ch, pos) {
+    if (!_arrow) return;
+    if (!cls || !tr) { _arrow.style.display = 'none'; return; }
+    _arrow.className = 'fd-arrow-' + pos.replace('bottom','up').replace('top','down').replace('right','left').replace('left','right');
+    // Position arrow between target and card
+    let ax = 0, ay = 0;
+    const aw = 16, ah = 10;
+    if (pos === 'bottom') {
+      ax = tr.left + tr.width / 2 - aw / 2;
+      ay = tr.bottom + 4;
+      _arrow.className = 'fd-arrow-up';
+    } else if (pos === 'top') {
+      ax = tr.left + tr.width / 2 - aw / 2;
+      ay = tr.top - 14;
+      _arrow.className = 'fd-arrow-down';
+    } else if (pos === 'right') {
+      ax = tr.right + 4;
+      ay = tr.top + tr.height / 2 - ah / 2;
+      _arrow.className = 'fd-arrow-left';
+    } else if (pos === 'left') {
+      ax = tr.left - 14;
+      ay = tr.top + tr.height / 2 - ah / 2;
+      _arrow.className = 'fd-arrow-right';
+    }
+    // Clamp
+    ax = Math.max(4, Math.min(ax, window.innerWidth  - aw - 4));
+    ay = Math.max(4, Math.min(ay, window.innerHeight - ah - 4));
+    _arrow.style.left    = ax + 'px';
+    _arrow.style.top     = ay + 'px';
+    _arrow.style.display = 'block';
+  }
+
+  function _spotlightTarget(el) {
+    if (!_spot) return;
+    if (!el) { _spot.style.display = 'none'; return; }
+    const r = el.getBoundingClientRect();
+    if (!r || r.width === 0) { _spot.style.display = 'none'; return; }
+    const pad = el.id === 'mainCanvas' ? 0 : 4;
+    _spot.style.display = 'block';
+    _spot.style.left    = (r.left - pad) + 'px';
+    _spot.style.top     = (r.top  - pad) + 'px';
+    _spot.style.width   = (r.width  + pad * 2) + 'px';
+    _spot.style.height  = (r.height + pad * 2) + 'px';
+    _spot.style.borderRadius = el.id === 'mainCanvas' ? '4px' : '8px';
+  }
+
+  // ── Build / update step UI ────────────────────────────────
+  function _renderStep(idx) {
+    const step = STEPS[idx];
+    if (!step) return;
+
+    // Progress dots
+    const dots = STEPS.map((s, i) => {
+      const cls = i < idx ? 'fd-dot done' : i === idx ? 'fd-dot active' : 'fd-dot';
+      return `<div class="${cls}"></div>`;
+    }).join('');
+
+    _card.innerHTML = `
+      <h3>${step.title}</h3>
+      <div class="fd-progress">${dots}</div>
+      <p>${step.body}</p>
+      <div class="fd-actions">
+        <button id="fdNextBtn">${step.next || 'Next →'}</button>
+        ${step.skip || idx === 0 ? '<button id="fdSkipBtn">Skip guide</button>' : ''}
+      </div>
+    `;
+
+    document.getElementById('fdNextBtn').addEventListener('click', _onNext);
+    const skip = document.getElementById('fdSkipBtn');
+    if (skip) skip.addEventListener('click', _finish);
+
+    // Run step action
+    if (step.action) {
+      setTimeout(step.action, 80);
+    }
+
+    // Position spotlight + card
+    const targetEl = _getTarget(step);
+    const rect     = _rectOf(targetEl);
+
+    _spotlightTarget(targetEl && rect ? targetEl : null);
+
+    requestAnimationFrame(() => {
+      _positionCard(step, rect);
+    });
+  }
+
+  // ── Event handlers ────────────────────────────────────────
+  function _onNext() {
+    const step = STEPS[_step];
+    if (_step < STEPS.length - 1) {
+      _step++;
+      // Animate card out then in
+      _card.style.opacity   = '0';
+      _card.style.transform = 'translateY(-6px) scale(.98)';
+      setTimeout(() => {
+        _card.style.opacity   = '';
+        _card.style.transform = '';
+        _card.style.animation = 'none';
+        void _card.offsetWidth;   // reflow
+        _card.style.animation = '';
+        _renderStep(_step);
+      }, 160);
+    } else {
+      _finish();
+    }
+  }
+
+  // ── Create DOM elements ───────────────────────────────────
+  function _createDOM() {
+    _overlay = document.createElement('div');
+    _overlay.id = 'fdOverlay';
+    document.body.appendChild(_overlay);
+
+    _spot = document.createElement('div');
+    _spot.id = 'fdSpot';
+    document.body.appendChild(_spot);
+
+    _card = document.createElement('div');
+    _card.id = 'fdCard';
+    document.body.appendChild(_card);
+
+    _arrow = document.createElement('div');
+    _arrow.id = 'fdArrow';
+    document.body.appendChild(_arrow);
+  }
+
+  let _arrow = null;
+
+  // ── Public ────────────────────────────────────────────────
+  function start(force) {
+    if (!force && localStorage.getItem(STORAGE_KEY)) return;
+    _injectCSS();
+    if (!document.getElementById('fdCard')) _createDOM();
+    _step   = 0;
+    _active = true;
+    _card.style.display   = '';
+    _spot.style.display   = '';
+    _overlay.style.display = '';
+    _renderStep(0);
+
+    // Re-position on resize
+    window.addEventListener('resize', _onResize);
+  }
+
+  function _finish() {
+    localStorage.setItem(STORAGE_KEY, '1');
+    _active = false;
+    // Animate out
+    if (_card)    { _card.style.opacity = '0';    _card.style.transform = 'translateY(10px) scale(.97)'; }
+    if (_spot)    { _spot.style.opacity = '0'; }
+    if (_overlay) { _overlay.style.opacity = '0'; }
+    setTimeout(() => {
+      _card    && (_card.style.display    = 'none', _card.style.opacity = '');
+      _spot    && (_spot.style.display    = 'none', _spot.style.opacity = '');
+      _overlay && (_overlay.style.display = 'none', _overlay.style.opacity = '');
+      _arrow   && (_arrow.style.display   = 'none');
+    }, 220);
+    window.removeEventListener('resize', _onResize);
+
+    // Show the ? help button so user knows it's there
+    const hb = document.getElementById('helpBtn');
+    if (hb) {
+      hb.style.transition = 'all .3s ease';
+      hb.style.background = 'var(--ac)';
+      hb.style.color      = '#fff';
+      hb.style.transform  = 'scale(1.3)';
+      setTimeout(() => {
+        hb.style.transform  = 'scale(1)';
+        hb.style.background = '';
+        hb.style.color      = '';
+      }, 1800);
+    }
+  }
+
+  function _onResize() {
+    if (!_active) return;
+    const step     = STEPS[_step];
+    const targetEl = _getTarget(step);
+    const rect     = _rectOf(targetEl);
+    _spotlightTarget(targetEl && rect ? targetEl : null);
+    _positionCard(step, rect);
+  }
+
+  function reset() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  return { start, reset };
+})();
+
+// ── Auto-start after app initialises ─────────────────────────
+// Delay slightly so App.init() has finished and the canvas is sized
+(function autoStartFirstDraw() {
+  // Check if already completed
+  if (localStorage.getItem('kalzen_first_draw_done')) return;
+  // Wait for the app shell to be ready (fonts + layout settle)
+  window.addEventListener('load', () => {
+    setTimeout(() => KalzenFirstDraw.start(), 800);
+  });
+})();
+
+
 </script>
 
 <!-- ══ Rich Tooltip ═══════════════════════════════════════════ -->
@@ -6031,6 +7483,109 @@ App.init();
       <div class="ktt-desc" id="kttDesc"></div>
       <div class="ktt-tip"  id="kttTip" style="display:none"></div>
       <span class="ktt-tier" id="kttTier" style="display:none"></span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     KALZEN HELP GUIDE — Full in-app overlay
+     Trigger: App.showHelp() / click ? button
+════════════════════════════════════════════════════════════ -->
+
+<!-- Help Button (fixed, bottom-left on desktop) -->
+<button id="helpBtn" onclick="KalzenHelp.open()"
+  title="Help Guide"
+  style="position:fixed;bottom:40px;left:10px;z-index:450;
+    width:28px;height:28px;border-radius:50%;
+    background:var(--sf2);border:1px solid var(--bd);
+    color:var(--txm);font-family:'DM Mono',monospace;
+    font-size:12px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;-webkit-tap-highlight-color:transparent;
+    box-shadow:0 2px 8px var(--sh)">?</button>
+
+<!-- Help overlay -->
+<div id="helpOverlay" style="
+  display:none;position:fixed;inset:0;z-index:20000;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  animation:helpFadeIn .2s ease">
+  <div id="helpModal" style="
+    position:absolute;inset:0;margin:auto;
+    width:min(860px,96vw);height:min(640px,92dvh);
+    background:var(--sf);border:1px solid var(--bd);
+    border-radius:16px;display:flex;flex-direction:column;
+    overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);
+    animation:helpSlideUp .25s cubic-bezier(.4,0,.2,1)">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;
+      padding:14px 18px;border-bottom:1px solid var(--bd);
+      flex-shrink:0;background:var(--sf2)">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;
+        font-weight:700;color:var(--tx)">Kal<span style="color:var(--ac)">z</span>en</div>
+      <div style="font-size:10px;color:var(--txm);letter-spacing:.08em;
+        text-transform:uppercase;flex:1">Help Guide</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input id="helpSearch" type="search" placeholder="Search…"
+          oninput="KalzenHelp.search(this.value)"
+          style="background:var(--sf);border:1px solid var(--bd);border-radius:8px;
+            color:var(--tx);font-family:'DM Mono',monospace;font-size:10px;
+            padding:5px 10px;width:140px;outline:none;
+            transition:border-color .15s"
+          onfocus="this.style.borderColor='var(--ac)'"
+          onblur="this.style.borderColor='var(--bd)'">
+        <button onclick="KalzenHelp.close()" style="
+          width:30px;height:30px;border-radius:8px;border:1px solid var(--bd);
+          background:transparent;color:var(--txm);font-size:16px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+          -webkit-tap-highlight-color:transparent">✕</button>
+      </div>
+    </div>
+
+    <!-- Body: sidebar + content -->
+    <div style="display:flex;flex:1;min-height:0;overflow:hidden">
+
+      <!-- Sidebar nav -->
+      <div id="helpNav" style="
+        width:180px;flex-shrink:0;border-right:1px solid var(--bd);
+        overflow-y:auto;padding:8px 0;
+        background:var(--sf);scrollbar-width:thin;
+        scrollbar-color:var(--ac) transparent">
+      </div>
+
+      <!-- Content pane -->
+      <div id="helpContent" style="
+        flex:1;overflow-y:auto;padding:24px 28px;
+        font-family:'DM Mono',monospace;line-height:1.7;
+        scrollbar-width:thin;scrollbar-color:var(--ac) transparent;
+        touch-action:pan-y;-webkit-overflow-scrolling:touch;
+        overscroll-behavior-y:contain">
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 18px;border-top:1px solid var(--bd);
+      flex-shrink:0;background:var(--sf2)">
+      <div id="helpBreadcrumb" style="font-size:9px;color:var(--txm)"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button onclick="KalzenHelp.close();setTimeout(()=>KalzenFirstDraw.start(true),100)"
+          style="background:none;border:none;color:var(--ac);font-family:'DM Mono',monospace;
+            font-size:9px;cursor:pointer;padding:0;text-decoration:underline;
+            -webkit-tap-highlight-color:transparent">
+          ▶ Replay First Draw Guide
+        </button>
+        <div style="font-size:9px;color:var(--txm)">
+          Press <span style="background:var(--sf);border:1px solid var(--bd);
+            border-radius:4px;padding:1px 5px;color:var(--tx)">Esc</span> to close
+          &nbsp;·&nbsp;
+          <span style="background:var(--sf);border:1px solid var(--bd);
+            border-radius:4px;padding:1px 5px;color:var(--tx)">↑↓</span> to navigate
+        </div>
+      </div>
     </div>
   </div>
 </div>

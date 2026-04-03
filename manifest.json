@@ -1,7 +1,7 @@
 {
   "name": "Kalzen \u2014 Digital Painting",
   "short_name": "Kalzen",
-  "description": "Professional digital painting with pressure-sensitive brushes, layers, and full graphic tablet support.",
+  "description": "Professional digital painting app. 24 brush engines, 29 presets, full layers, graphic tablet support, built-in help guide, and offline capability.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -89,21 +89,45 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Kalzen Drawing App"
+      "label": "Kalzen \u2014 Digital Painting"
     },
     {
       "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Kalzen Drawing App"
+      "label": "Kalzen \u2014 Digital Painting on Desktop"
     }
   ],
   "shortcuts": [
     {
       "name": "New Canvas",
       "short_name": "New",
-      "description": "Start a blank canvas",
+      "description": "Start a blank canvas in Kalzen",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "./icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Brush Tool",
+      "short_name": "Paint",
+      "description": "Open Kalzen with the Brush tool active",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "./icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Help Guide",
+      "short_name": "Help",
+      "description": "Open Kalzen and view the built-in help guide",
       "url": "./index.html",
       "icons": [
         {
@@ -123,5 +147,9 @@
       "text": "text",
       "url": "url"
     }
+  },
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
   }
 }
